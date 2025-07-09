@@ -1,0 +1,5 @@
+Notes from reading the code ( https://github.com/ecmwf/hda/blob/master/hda/api.py, object "Client"): - There is the line "response = self.get("dataaccess/queryable", dataset_id)" in the method "metadat" of client. This may indicate that error containing "dataaccess/queryable" come from this method.
+
+- "dataaccess/search" appears in the class "SearchPaginator" and may indicator a problem with the search
+
+- 
