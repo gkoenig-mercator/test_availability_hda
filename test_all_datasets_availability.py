@@ -1,6 +1,10 @@
 from hda import Client, Configuration
 import pandas as pd
-c = Client()
+import logging
+logging.getLogger("hda").setLevel("DEBUG")
+
+config = Configuration(path='../.hdarc')
+c = Client(config=config)
 datasets_id = [dataset['dataset_id'] for dataset in c.datasets()]
 datasets_availability = []
 def get_geographic_boundaries(dataset_id, Client):
