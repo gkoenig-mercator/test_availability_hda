@@ -3,7 +3,7 @@ import pandas as pd
 import logging
 logging.getLogger("hda").setLevel("DEBUG")
 
-config = Configuration(path='../.hdarc')
+config = Configuration(path='../.hdarc', retry_max=5, sleep_max=20)
 c = Client(config=config)
 datasets_id = [dataset['dataset_id'] for dataset in c.datasets()]
 datasets_availability = []
@@ -27,7 +27,10 @@ def get_start_and_end_dates(dataset_id, Client):
         return None, None
 
 def get_volume_in_Gb(matches):
-    return int(matches.volume/(10e9))
+    try: 
+        return int(matches.volume/(10e9))
+    except:
+        return None
 
 for dataset_id in datasets_id:
     query = {
