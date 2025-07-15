@@ -3,8 +3,8 @@ import pandas as pd
 import logging
 logging.getLogger("hda").setLevel("DEBUG")
 
-config = Configuration(path='../.hdarc', retry_max=5, sleep_max=20)
-c = Client(config=config)
+config = Configuration(path='../.hdarc')
+c = Client(config=config, retry_max=5, sleep_max=20)
 datasets_id = [dataset['dataset_id'] for dataset in c.datasets()]
 datasets_availability = []
 def get_geographic_boundaries(dataset_id, Client):
