@@ -4,7 +4,7 @@ import logging
 logging.getLogger("hda").setLevel("DEBUG")
 
 config = Configuration(path='../.hdarc')
-c = Client(config=config, retry_max=5, sleep_max=20)
+c = Client(config=config, retry_max=500, sleep_max=2)
 datasets_id = [dataset['dataset_id'] for dataset in c.datasets()]
 datasets_availability = []
 def get_geographic_boundaries(dataset_id, Client):
@@ -32,7 +32,7 @@ def get_volume_in_Gb(matches):
     except:
         return None
 
-for dataset_id in datasets_id:
+for dataset_id in datasets_id[::-1]:
     query = {
         "dataset_id": dataset_id
      }
