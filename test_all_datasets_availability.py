@@ -32,10 +32,52 @@ def get_volume_in_Gb(matches):
     except:
         return None
 
+def retrieve_required_informations(metadata):
+    dic_info = {}
+    list_info = metadata['required']
+
+    if 'variables' in list_info:
+        list_info.remove('variables')
+
+    for info in list_info:
+        if info=='latitude' or info=='longitude':
+            dic_info[info]=45
+        elif info=='altitude':
+            dic_info[info]=0
+        elif info=='startdate':
+            dic_info[info]=metadata['properties'][info]['minimum']
+        elif info=='enddate':
+            dic_info[info]=metadata['properties'][info]['maximum']
+        else:
+            try:
+                dic_info[info] = metadata['properties'][info]['items']['oneOf'][0]['const']
+            except:
+                dic_info[info] = metadata['properties'][info]['oneOf'][0]['const']
+    return dic_info
+
+def create_query(dic_info):
+    query = dic_info
+    if 'latitude' in query.keys():
+        query['bbox']=[40, 41, 40, 41]
+        del query['latitude']
+        del query['longitude']
+
+    return query
+        
+
 for dataset_id in datasets_id[::-1]:
-    query = {
-        "dataset_id": dataset_id
-     }
+
+    try:
+        metadata_dataset = c.metadata(dataset_id=dataset_id)
+        dic_info = retrieve_required_informations(metadata_dataset)
+        query = create_query(dic_info)
+    except Exception as e:
+        print(e)
+        datasets_availability.append([dataset_id, False, e, None, None, None, None, None, None, None])
+        continue
+        
+
+    print(query)
     try:
         min_lon, max_lon, min_lat, max_lat = get_geographic_boundaries(dataset_id, c)
         start_date, end_date = get_start_and_end_dates(dataset_id, c)
