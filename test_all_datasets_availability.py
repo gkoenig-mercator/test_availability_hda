@@ -1,94 +1,122 @@
 from hda import Client, Configuration
 import pandas as pd
 import logging
+
 logging.getLogger("hda").setLevel("DEBUG")
 
 config = Configuration(path='../.hdarc')
 c = Client(config=config, retry_max=500, sleep_max=2)
-datasets_id = [dataset['dataset_id'] for dataset in c.datasets()]
-datasets_availability = []
-def get_geographic_boundaries(dataset_id, Client):
-    try :
-        dataset_geographical_bounds = Client.dataset(dataset_id)['metadata']['_source']['location']['coordinates']
-        min_lon = dataset_geographical_bounds[0][0]
-        min_lat = dataset_geographical_bounds[1][1]
-        max_lon = dataset_geographical_bounds[1][0]
-        max_lat = dataset_geographical_bounds[0][1]
 
+datasets_availability = []
+
+
+def get_geographic_boundaries(metadata):
+    """Extract dataset bounding box coordinates if available."""
+    try:
+        coords = metadata['metadata']['_source']['location']['coordinates']
+        min_lon, max_lon = coords[0][0], coords[1][0]
+        min_lat, max_lat = coords[1][1], coords[0][1]
         return min_lon, max_lon, min_lat, max_lat
-    except :
+    except Exception:
         return None, None, None, None
 
-def get_start_and_end_dates(dataset_id, Client):
-    try: 
-        metadata = Client.metadata(dataset_id)
-        return metadata['properties']['startdate']['default'], metadata['properties']['enddate']['default']
-    except:
+
+def get_start_and_end_dates(metadata):
+    """Extract dataset start/end dates if available."""
+    try:
+        props = metadata['properties']
+        return props['startdate']['default'], props['enddate']['default']
+    except Exception:
         return None, None
 
+
 def get_volume_in_Gb(matches):
-    try: 
-        return int(matches.volume/(10e9))
-    except:
+    """Convert volume from bytes to gigabytes."""
+    try:
+        return int(matches.volume / 1e9)
+    except Exception:
         return None
 
+
 def retrieve_required_informations(metadata):
+    """Build query dictionary based on required metadata fields."""
     dic_info = {}
-    list_info = metadata['required']
+    required = list(metadata.get('required', []))  # copy to avoid mutating original
 
-    if 'variables' in list_info:
-        list_info.remove('variables')
+    if 'variables' in required:
+        required.remove('variables')
 
-    for info in list_info:
-        if info=='latitude' or info=='longitude':
-            dic_info[info]=45
-        elif info=='altitude':
-            dic_info[info]=0
-        elif info=='startdate':
-            dic_info[info]=metadata['properties'][info]['minimum']
-        elif info=='enddate':
-            dic_info[info]=metadata['properties'][info]['maximum']
-        else:
-            try:
-                dic_info[info] = metadata['properties'][info]['items']['oneOf'][0]['const']
-            except:
-                dic_info[info] = metadata['properties'][info]['oneOf'][0]['const']
+    for info in required:
+        try:
+            if info in ('latitude', 'longitude'):
+                dic_info[info] = 45
+            elif info == 'altitude':
+                dic_info[info] = 0
+            elif info == 'startdate':
+                dic_info[info] = metadata['properties'][info]['minimum']
+            elif info == 'enddate':
+                dic_info[info] = metadata['properties'][info]['maximum']
+            else:
+                # Try different schema structures
+                dic_info[info] = (
+                    metadata['properties'][info]['items']['oneOf'][0]['const']
+                    if 'items' in metadata['properties'][info]
+                    else metadata['properties'][info]['oneOf'][0]['const']
+                )
+        except Exception:
+            dic_info[info] = None
     return dic_info
 
+
 def create_query(dic_info):
-    query = dic_info
-    if 'latitude' in query.keys():
-        query['bbox']=[40, 41, 40, 41]
-        del query['latitude']
-        del query['longitude']
-
+    """Adapt query format for API consumption."""
+    query = dict(dic_info)  # shallow copy
+    if 'latitude' in query and 'longitude' in query:
+        query['bbox'] = [40, 41, 40, 41]
+        query.pop('latitude')
+        query.pop('longitude')
     return query
-        
 
-for dataset_id in datasets_id[::-1]:
 
+for dataset in c.datasets()[::-1]:
+    dataset_id = dataset['dataset_id']
     try:
+        # Only one metadata request per dataset
         metadata_dataset = c.metadata(dataset_id=dataset_id)
+
         dic_info = retrieve_required_informations(metadata_dataset)
         query = create_query(dic_info)
-    except Exception as e:
-        print(e)
-        datasets_availability.append([dataset_id, False, e, None, None, None, None, None, None, None])
-        continue
-        
+        print(query)
+        print(dataset_id)
 
-    print(query)
-    try:
-        min_lon, max_lon, min_lat, max_lat = get_geographic_boundaries(dataset_id, c)
-        start_date, end_date = get_start_and_end_dates(dataset_id, c)
+        min_lon, max_lon, min_lat, max_lat = get_geographic_boundaries(metadata_dataset)
+        start_date, end_date = get_start_and_end_dates(metadata_dataset)
+
         matches = c.search(query)
         volume = get_volume_in_Gb(matches)
-        datasets_availability.append([dataset_id, True, None, min_lon, max_lon, min_lat, max_lat, start_date, end_date, volume])
-        print(dataset_id, f"Download volume of {volume}Gb")
+
+        datasets_availability.append(
+            [dataset_id, True, None, min_lon, max_lon, min_lat, max_lat,
+             start_date, end_date, volume, query]
+        )
+        print(dataset_id, f"Download volume of {volume} Gb")
+
     except Exception as e:
-        datasets_availability.append([dataset_id, False, e, None, None, None, None, None, None, None])
-        print(e)
+        logging.exception(f"Error processing dataset {dataset_id}")
+        datasets_availability.append(
+            [dataset_id, False, str(e), None, None, None, None, None, None, None, None]
+        )
 
-data_download = pd.DataFrame(datasets_availability, columns = ['Dataset_id','Available','Error','Minimum Longitude','Maximum Longitude','Minimum Latitude','Maximum Latitude', 'Start date','End date','Downloadable volume (Gb)'])
+# Save results
+data_download = pd.DataFrame(
+    datasets_availability,
+    columns=[
+        'Dataset_id', 'Available', 'Error',
+        'Minimum Longitude', 'Maximum Longitude',
+        'Minimum Latitude', 'Maximum Latitude',
+        'Start date', 'End date',
+        'Downloadable volume (Gb)','Query'
+    ]
+)
 
-data_download.to_csv('Datasets_availability.csv')
+data_download.to_csv('Datasets_availability.csv', index=False)
