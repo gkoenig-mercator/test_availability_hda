@@ -2,6 +2,45 @@ from hda import Client, Configuration
 import pandas as pd
 import logging
 
+EXCEPTIONS = {
+    "EO:CLMS:DAT:CLMS_GLOBAL_LST_5KM_V1_HOURLY_NETCDF": {
+        "notes": "Requires a complete query; fails with minimal query. Needs bbox, dates, and all fixed parameters.",
+        "force_fields": {
+            "productType": "LST",
+            "productionStatus": "ARCHIVED",
+            "acquisitionType": "NOMINAL",
+            "platform": "GOES",
+            "processingCenter": "IPMA",
+            "resolution": "5000"
+        }
+    },
+    "EO:MO:DAT:NWSHELF": {
+        "notes": "Fails when bbox is included. Queries should omit bbox.",
+        "remove_fields": ["bbox"]
+    },
+    "EO:MO:DAT:NWSHELF_MULTIYEAR_BGC_004_011": {
+        "notes": "Same as NWSHELF: omit bbox, otherwise query hangs.",
+        "remove_fields": ["bbox"]
+    },
+    "EO:EUM:DAT:MULT:HIRSL1": {
+        "notes": "Fails unless orbit is provided. publication can be omitted, but orbit must be present.",
+        "required_fields": ["orbit"]
+    },
+    "EO:EUM:DAT:0684": {
+        "notes": "Needs repeatCycleIdentifier (not marked required in metadata).",
+        "required_fields": ["repeatCycleIdentifier"]
+    },
+    "EO:ESA:DAT:SENTINEL-3": {
+        "notes": "Fails if startdate/enddate are empty. Must supply non-empty values.",
+        "require_non_empty": ["startdate", "enddate"]
+    },
+    "EO:CLMS:DAT:CLMS_GLOBAL_DMP_300M_V1_10DAILY_NETCDF": {
+        "notes": "ProductionStatus must be ARCHIVED, not CANCELLED.",
+        "force_fields": {"productionStatus": "ARCHIVED"}
+    }
+}
+
+
 #logging.getLogger("hda").setLevel("DEBUG")
 
 config = Configuration(path='../.hdarc')
@@ -116,6 +155,29 @@ def build_query_from_metadata(metadata, startdate=None, enddate=None, items_per_
 
     return query
 
+def apply_exceptions(dataset_id, query):
+    for key, rules in EXCEPTIONS.items():
+        if dataset_id.startswith(key):  # prefix match for dataset families
+            print(f"⚠️ Applying exception rules for {dataset_id}: {rules['notes']}")
+
+            if "force_fields" in rules:
+                query.update(rules["force_fields"])
+
+            if "remove_fields" in rules:
+                for field in rules["remove_fields"]:
+                    query.pop(field, None)
+
+            if "required_fields" in rules:
+                for field in rules["required_fields"]:
+                    if field not in query or not query[field]:
+                        query[field] = "MISSING"  # or some default you define
+
+            if "require_non_empty" in rules:
+                for field in rules["require_non_empty"]:
+                    if not query.get(field):
+                        raise ValueError(f"{dataset_id} requires non-empty {field}")
+
+    return query
 
 for dataset in c.datasets():
     dataset_id = dataset['dataset_id']
@@ -126,6 +188,9 @@ for dataset in c.datasets():
         query = build_query_from_metadata(metadata_dataset)
         print(query)
         print(dataset_id)
+
+        query = apply_exceptions("dataset_id", query)
+        print(query)
 
         min_lon, max_lon, min_lat, max_lat = get_geographic_boundaries(metadata_dataset)
         start_date, end_date = get_start_and_end_dates(metadata_dataset)
