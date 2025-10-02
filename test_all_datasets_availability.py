@@ -2,10 +2,10 @@ from hda import Client, Configuration
 import pandas as pd
 import logging
 
-logging.getLogger("hda").setLevel("DEBUG")
+#logging.getLogger("hda").setLevel("DEBUG")
 
 config = Configuration(path='../.hdarc')
-c = Client(config=config, retry_max=500, sleep_max=2)
+c = Client(config=config, retry_max=3, sleep_max=1)
 
 datasets_availability = []
 
@@ -77,15 +77,53 @@ def create_query(dic_info):
         query.pop('longitude')
     return query
 
+def build_query_from_metadata(metadata, startdate=None, enddate=None, items_per_page=200, start_index=0):
+    """
+    Build a query dictionary using metadata information.
+    - Fills in deterministic fields (dataset_id, productType, platform, etc.).
+    - Leaves bbox, startdate, enddate flexible (uses arguments if provided).
+    - Adds pagination fields.
+    """
 
-for dataset in c.datasets()[::-1]:
+    query = {}
+
+    properties = metadata.get("properties", {})
+
+    for key, prop in properties.items():
+        # Skip date and bbox (handled separately)
+        if key in ["startdate", "enddate", "bbox"]:
+            continue
+
+        try:
+            # If property has fixed possible values, take the first one
+            if "oneOf" in prop:
+                query[key] = prop["oneOf"][0]["const"]
+            elif "items" in prop and "oneOf" in prop["items"]:
+                query[key] = prop["items"]["oneOf"][0]["const"]
+            elif "default" in prop and prop["default"] != "":
+                query[key] = prop["default"]
+        except Exception:
+            # fallback: ignore if we can't resolve it
+            pass
+    
+    # Handle temporal range
+    query["startdate"] = startdate if startdate else metadata["properties"]["startdate"].get("minimum", "")
+    query["enddate"] = enddate if enddate else metadata["properties"]["enddate"].get("maximum", "")
+
+    # Pagination
+    query["itemsPerPage"] = items_per_page
+    query["startIndex"] = start_index
+
+    return query
+
+
+for dataset in c.datasets():
     dataset_id = dataset['dataset_id']
     try:
         # Only one metadata request per dataset
         metadata_dataset = c.metadata(dataset_id=dataset_id)
 
-        dic_info = retrieve_required_informations(metadata_dataset)
-        query = create_query(dic_info)
+        query = build_query_from_metadata(metadata_dataset)
         print(query)
         print(dataset_id)
 
