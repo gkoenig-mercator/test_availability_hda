@@ -146,8 +146,10 @@ def build_query_from_metadata(metadata, startdate=None, enddate=None, items_per_
             pass
     
     # Handle temporal range
-    query["startdate"] = startdate if startdate else metadata["properties"]["startdate"].get("minimum", "")
-    query["enddate"] = enddate if enddate else metadata["properties"]["enddate"].get("maximum", "")
+    if startdate:
+        query["startdate"] = startdate
+    if enddate:
+        query["enddate"] = enddate
 
     # Pagination
     query["itemsPerPage"] = items_per_page
@@ -179,7 +181,7 @@ def apply_exceptions(dataset_id, query):
 
     return query
 
-for dataset in c.datasets():
+for dataset in c.datasets()[694:712]:
     dataset_id = dataset['dataset_id']
     try:
         # Only one metadata request per dataset
@@ -207,7 +209,7 @@ for dataset in c.datasets():
     except Exception as e:
         logging.exception(f"Error processing dataset {dataset_id}")
         datasets_availability.append(
-            [dataset_id, False, str(e), None, None, None, None, None, None, None, None]
+            [dataset_id, False, str(e), None, None, None, None, None, None, None, query]
         )
 
 # Save results
