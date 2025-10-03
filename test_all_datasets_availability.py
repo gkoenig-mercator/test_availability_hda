@@ -80,8 +80,11 @@ def _apply_rules(query: dict, rules: dict, dataset_id: str):
     if "required_fields" in rules:
         for field in rules["required_fields"]:
             if field not in query or query.get(field) in (None, "", []):
-                # You might prefer None, a sentinel, or a default. Change here if needed.
-                query[field] = "MISSING"
+                if field=="repeatCycleIdentifier":
+                    query[field]=2
+                else:
+                    # You might prefer None, a sentinel, or a default. Change here if needed.
+                    query[field] = "MISSING"
 
     # Require non-empty: raise if missing or empty (keeps original behavior)
     if "require_non_empty" in rules:
@@ -228,7 +231,7 @@ def build_query_from_metadata(metadata, startdate=None, enddate=None, items_per_
 
 
 # ---- main loop (same as before, but corrected apply_exceptions call) ----
-for dataset in c.datasets()[1100:1200]:
+for dataset in c.datasets()[1000:1100]:
     dataset_id = dataset['dataset_id']
     query = {}  # ensure query exists even if exception is raised early
     try:
