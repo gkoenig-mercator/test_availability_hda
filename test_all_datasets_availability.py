@@ -1,9 +1,13 @@
 from hda import Client, Configuration
 import pandas as pd
 import logging
+import re
 
-EXCEPTIONS = {
-    "EO:CLMS:DAT:CLMS_GLOBAL_LST_5KM_V1_HOURLY_NETCDF": {
+# --- Exceptions expressed as regex patterns (strings) ---
+# Use regex so exact matches and families/prefixes are handled the same way.
+EXCEPTIONS_RAW = {
+    # exact name (anchor with ^ and $)
+    r"^EO:CLMS:DAT:CLMS_GLOBAL_LST_5KM_V1_HOURLY_NETCDF$": {
         "notes": "Requires a complete query; fails with minimal query. Needs bbox, dates, and all fixed parameters.",
         "force_fields": {
             "productType": "LST",
@@ -14,30 +18,98 @@ EXCEPTIONS = {
             "resolution": "5000"
         }
     },
-    "EO:MO:DAT:NWSHELF": {
+    r"^EO:MO:DAT:NWSHELF$": {
         "notes": "Fails when bbox is included. Queries should omit bbox.",
         "remove_fields": ["bbox"]
     },
-    "EO:MO:DAT:NWSHELF_MULTIYEAR_BGC_004_011": {
+    r"^EO:MO:DAT:NWSHELF_MULTIYEAR_BGC_004_011$": {
         "notes": "Same as NWSHELF: omit bbox, otherwise query hangs.",
         "remove_fields": ["bbox"]
     },
-    "EO:EUM:DAT:0684": {
-        "notes": "Needs repeatCycleIdentifier (not marked required in metadata).",
+    # family/prefix: matches EO:EUM:DAT:06** (any string starting with EO:EUM:DAT:06)
+    r"^EO:EUM:DAT:06.*": {
+        "notes": "All datasets in this family need repeatCycleIdentifier (not marked required in metadata).",
         "required_fields": ["repeatCycleIdentifier"]
     },
-    "EO:ESA:DAT:SENTINEL-3": {
+    r"^EO:ESA:DAT:SENTINEL-3$": {
         "notes": "Fails if startdate/enddate are empty. Must supply non-empty values.",
         "require_non_empty": ["startdate", "enddate"]
     },
-    "EO:CLMS:DAT:CLMS_GLOBAL_DMP_300M_V1_10DAILY_NETCDF": {
+    r"^EO:CLMS:DAT:CLMS_GLOBAL_DMP_300M_V1_10DAILY_NETCDF$": {
         "notes": "ProductionStatus must be ARCHIVED, not CANCELLED.",
         "force_fields": {"productionStatus": "ARCHIVED"}
     }
 }
 
+# Compile patterns once into a list of tuples: (compiled_regex, rules)
+def compile_exception_patterns(exceptions_raw):
+    compiled = []
+    for pat, rules in exceptions_raw.items():
+        compiled.append((re.compile(pat), rules))
+    return compiled
 
-#logging.getLogger("hda").setLevel("DEBUG")
+COMPILED_EXCEPTIONS = compile_exception_patterns(EXCEPTIONS_RAW)
+
+
+def register_exception(pattern: str, rules: dict, at_front: bool = True):
+    """
+    Register a new exception at runtime.
+    - pattern: a regex string (e.g. r"^EO:EUM:DAT:06.*" or r"^EO:MY:DATA:EXACT$").
+    - rules: dict with possible keys: notes, force_fields, remove_fields, required_fields, require_non_empty
+    - at_front: if True, new rule is checked before existing rules (gives it higher precedence).
+    """
+    compiled = (re.compile(pattern), rules)
+    if at_front:
+        COMPILED_EXCEPTIONS.insert(0, compiled)
+    else:
+        COMPILED_EXCEPTIONS.append(compiled)
+
+
+def _apply_rules(query: dict, rules: dict, dataset_id: str):
+    """Helper to apply the rules to the query dict. Returns modified query."""
+    # Force/override fields
+    if "force_fields" in rules:
+        query.update(rules["force_fields"])
+
+    # Remove fields
+    if "remove_fields" in rules:
+        for field in rules["remove_fields"]:
+            query.pop(field, None)
+
+    # Required fields: ensure presence (set placeholder if missing)
+    if "required_fields" in rules:
+        for field in rules["required_fields"]:
+            if field not in query or query.get(field) in (None, "", []):
+                # You might prefer None, a sentinel, or a default. Change here if needed.
+                query[field] = "MISSING"
+
+    # Require non-empty: raise if missing or empty (keeps original behavior)
+    if "require_non_empty" in rules:
+        for field in rules["require_non_empty"]:
+            if not query.get(field):
+                raise ValueError(f"{dataset_id} requires non-empty {field}")
+
+    return query
+
+
+def apply_exceptions(dataset_id: str, query: dict):
+    """
+    Apply all matching exception rules to `query`.
+    Patterns are regexes and tested with .search() against dataset_id.
+    Multiple patterns can match; rules are applied in the order in COMPILED_EXCEPTIONS.
+    """
+    for pattern, rules in COMPILED_EXCEPTIONS:
+        if pattern.search(dataset_id):
+            print(f"⚠️ Applying exception rules for {dataset_id}: {rules.get('notes', '')}")
+            query = _apply_rules(query, rules, dataset_id)
+    return query
+
+
+# ---------------------------
+# rest of your original script with one small fix: make sure to call apply_exceptions(dataset_id, query)
+# ---------------------------
+
+# logging.getLogger("hda").setLevel("DEBUG")
 
 config = Configuration(path='../.hdarc')
 c = Client(config=config, retry_max=3, sleep_max=1)
@@ -112,6 +184,7 @@ def create_query(dic_info):
         query.pop('longitude')
     return query
 
+
 def build_query_from_metadata(metadata, startdate=None, enddate=None, items_per_page=200, start_index=0):
     """
     Build a query dictionary using metadata information.
@@ -140,7 +213,7 @@ def build_query_from_metadata(metadata, startdate=None, enddate=None, items_per_
         except Exception:
             # fallback: ignore if we can't resolve it
             pass
-    
+
     # Handle temporal range
     if startdate:
         query["startdate"] = startdate
@@ -153,32 +226,11 @@ def build_query_from_metadata(metadata, startdate=None, enddate=None, items_per_
 
     return query
 
-def apply_exceptions(dataset_id, query):
-    for key, rules in EXCEPTIONS.items():
-        if dataset_id.startswith(key):  # prefix match for dataset families
-            print(f"⚠️ Applying exception rules for {dataset_id}: {rules['notes']}")
 
-            if "force_fields" in rules:
-                query.update(rules["force_fields"])
-
-            if "remove_fields" in rules:
-                for field in rules["remove_fields"]:
-                    query.pop(field, None)
-
-            if "required_fields" in rules:
-                for field in rules["required_fields"]:
-                    if field not in query or not query[field]:
-                        query[field] = "MISSING"  # or some default you define
-
-            if "require_non_empty" in rules:
-                for field in rules["require_non_empty"]:
-                    if not query.get(field):
-                        raise ValueError(f"{dataset_id} requires non-empty {field}")
-
-    return query
-
-for dataset in c.datasets()[694:712]:
+# ---- main loop (same as before, but corrected apply_exceptions call) ----
+for dataset in c.datasets()[1100:1200]:
     dataset_id = dataset['dataset_id']
+    query = {}  # ensure query exists even if exception is raised early
     try:
         # Only one metadata request per dataset
         metadata_dataset = c.metadata(dataset_id=dataset_id)
@@ -187,7 +239,8 @@ for dataset in c.datasets()[694:712]:
         print(query)
         print(dataset_id)
 
-        query = apply_exceptions("dataset_id", query)
+        # <-- FIXED: pass the actual dataset_id variable, not the literal string
+        query = apply_exceptions(dataset_id, query)
         print(query)
 
         min_lon, max_lon, min_lat, max_lat = get_geographic_boundaries(metadata_dataset)
