@@ -81,7 +81,7 @@ def _apply_rules(query: dict, rules: dict, dataset_id: str):
         for field in rules["required_fields"]:
             if field not in query or query.get(field) in (None, "", []):
                 if field=="repeatCycleIdentifier":
-                    query[field]=2
+                    query[field]="2"
                 else:
                     # You might prefer None, a sentinel, or a default. Change here if needed.
                     query[field] = "MISSING"
