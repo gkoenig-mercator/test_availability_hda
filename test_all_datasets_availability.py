@@ -22,10 +22,6 @@ EXCEPTIONS = {
         "notes": "Same as NWSHELF: omit bbox, otherwise query hangs.",
         "remove_fields": ["bbox"]
     },
-    "EO:EUM:DAT:MULT:HIRSL1": {
-        "notes": "Fails unless orbit is provided. publication can be omitted, but orbit must be present.",
-        "required_fields": ["orbit"]
-    },
     "EO:EUM:DAT:0684": {
         "notes": "Needs repeatCycleIdentifier (not marked required in metadata).",
         "required_fields": ["repeatCycleIdentifier"]
