@@ -39,9 +39,65 @@ EXCEPTIONS_RAW = {
         "notes": "ProductionStatus must be ARCHIVED, not CANCELLED.",
         "force_fields": {"productionStatus": "ARCHIVED"}
     },
-    r"EO:ECMWF:DAT:CAMS_GLOBAL_ATMOSPHERIC_COMPOSITION_FORECASTS$": {
-        "notes":"The pressure levels and model levels are in the required fields but actually block the query",
-        "remove_fields":["pressure_level","model_level"]s
+    r"^EO:ECMWF:DAT:CAMS_GLOBAL_ATMOSPHERIC_COMPOSITION_FORECASTS$": {
+        "notes":"The pressure levels and model levels are in the required fields but actually block the query. There is als a need for startdate and enddate",
+        "remove_fields":["pressure_level","model_level"],
+        "force_fields": {
+              "startdate": "2025-10-03T00:00:00.000Z",
+              "enddate": "2025-10-03T23:59:59.999Z",},
+    },
+    r"^EO:ECMWF:DAT:CAMS_GLOBAL_FIRE_EMISSIONS_GFAS$": {
+        "notes": "The startdate and enddate fields are required",
+        "force_fields": {
+              "startdate": "2025-10-03T00:00:00.000Z",
+              "enddate": "2025-10-03T23:59:59.999Z",},
+    },
+    r"^EO:ECMWF:DAT:CAMS_GLOBAL_GREENHOUSE_GAS_FORECASTS$": {
+        "notes": "The startdate and enddate fields are required",
+        "force_fields": {
+              "startdate": "2025-10-03T00:00:00.000Z",
+              "enddate": "2025-10-03T23:59:59.999Z",}
+    },
+    r"^EO:ECMWF:DAT:CAMS_GLOBAL_REANALYSIS_EAC4$": {
+        "notes": "The startdate and enddate fields are required",
+        "force_fields": {
+              "startdate": "2025-10-03T00:00:00.000Z",
+              "enddate": "2025-10-03T23:59:59.999Z",}
+    },
+    r"^EO:ECMWF:DAT:CAMS_SOLAR_RADIATION_TIMESERIES$": {
+        "notes":"The startdate, enddate, longitude, latitude and altitude fields are required",
+        "force_fields": {
+        "startdate": "2025-10-06T00:00:00.000Z",
+        "enddate": "2025-10-06T23:59:59.999Z",
+        "latitude": "40",
+        "longitude": "40",
+        "altitude": "1000",
+        },
+    },
+    r"^EO:ECMWF:DAT:REANALYSIS_ERA5_LAND_TIMESERIES$": {
+        "notes":"The startdate, enddate, longitude and latitude fields are required",
+        "force_fields": {
+              "startdate": "2025-10-03T00:00:00.000Z",
+              "enddate": "2025-10-03T23:59:59.999Z",
+              "latitude": "40",
+              "longitude": "50",
+              },
+        },
+    r"^EO:ECMWF:DAT:REANALYSIS_ERA5_SINGLE_LEVELS_TIMESERIES$": {
+        "notes": "The startdate, enddate, longitude and latitude fields are required",
+        "force_fields": {
+              "startdate": "2025-10-03T00:00:00.000Z",
+              "enddate": "2025-10-03T23:59:59.999Z",
+              "latitude": "40",
+              "longitude": "50",
+              },
+    },
+    r"^EO:ECMWF:DAT:CAMS_GLOBAL_GHG_REANALYSIS_EGG4$": {
+        "notes":"The dates were missing",
+        "force_fields": {
+              "startdate": "2025-10-03T00:00:00.000Z",
+              "enddate": "2025-10-03T23:59:59.999Z",
+        },
     },
 }
 
