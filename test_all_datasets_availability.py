@@ -38,7 +38,11 @@ EXCEPTIONS_RAW = {
     r"^EO:CLMS:DAT:CLMS_GLOBAL_DMP_300M_V1_10DAILY_NETCDF$": {
         "notes": "ProductionStatus must be ARCHIVED, not CANCELLED.",
         "force_fields": {"productionStatus": "ARCHIVED"}
-    }
+    },
+    r"EO:ECMWF:DAT:CAMS_GLOBAL_ATMOSPHERIC_COMPOSITION_FORECASTS$": {
+        "notes":"The pressure levels and model levels are in the required fields but actually block the query",
+        "remove_fields":["pressure_level","model_level"]s
+    },
 }
 
 # Compile patterns once into a list of tuples: (compiled_regex, rules)
@@ -231,7 +235,7 @@ def build_query_from_metadata(metadata, startdate=None, enddate=None, items_per_
 
 
 # ---- main loop (same as before, but corrected apply_exceptions call) ----
-for dataset in c.datasets()[1000:1100]:
+for dataset in c.datasets()[1100:1200]:
     dataset_id = dataset['dataset_id']
     query = {}  # ensure query exists even if exception is raised early
     try:
