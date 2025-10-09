@@ -2,6 +2,8 @@ from hda import Client, Configuration
 import pandas as pd
 import logging
 import re
+import threading
+import time
 
 # --- Exceptions expressed as regex patterns (strings) ---
 # Use regex so exact matches and families/prefixes are handled the same way.
@@ -98,6 +100,64 @@ EXCEPTIONS_RAW = {
               "startdate": "2025-10-03T00:00:00.000Z",
               "enddate": "2025-10-03T23:59:59.999Z",
         },
+    },
+    r"^EO:CLMS:DAT:CLMS_GLOBAL_BA_300M_V3_DAILY_NETCDF$": {
+        "notes": "The Production status is not necessary.",
+        "remove_fields": ["productionStatus"]
+    },
+    r"^EO:CLMS:DAT:CLMS_GLOBAL_GDMP_300M_V1_10DAILY_NETCDF$": {
+        "notes": "The Production status is not necessary.",
+        "remove_fields": ["productionStatus"]
+    },
+    r"^EO:CLMS:DAT:CLMS_GLOBAL_LST_5KM_V1_10DAILY-DAILY-CYCLE_NETCDF$": {
+        "notes": "The Production status is not necessary.",
+        "remove_fields": ["productionStatus"]
+    },
+    r"^EO:CLMS:DAT:CLMS_GLOBAL_LST_5KM_V1_10DAILY-TCI_NETCDF$": {
+        "notes": "The Production status is not necessary.",
+        "remove_fields": ["productionStatus"]
+    },
+    r"^EO:CLMS:DAT:CLMS_GLOBAL_LST_5KM_V2_10DAILY-DAILY-CYCLE_NETCDF$": {
+        "notes": "The Production status is not necessary.",
+        "remove_fields": ["productionStatus"]
+    },
+    r"^EO:CLMS:DAT:CLMS_GLOBAL_LST_5KM_V2_10DAILY-TCI_NETCDF$": {
+        "notes": "The Production status is not necessary.",
+        "remove_fields": ["productionStatus"]
+    },
+    r"^EO:CNES:DAT:SWH:SPOT5$": {
+        "notes": "The bbox is necessary.",
+        "force_fields": {
+                "bbox": [
+                         15.7421745918424,
+                         30.67706860391895,
+                         33.090693529791174,
+                         43.67197322929656
+                         ],
+          },
+    },
+    r"^EO:CRYO:DAT:HRSI:SWS$": {
+        "notes": "The Production status is not necessary.",
+        "force_fields": {
+                "bbox": [
+                         15.7421745918424,
+                         30.67706860391895,
+                         33.090693529791174,
+                         43.67197322929656
+                         ],
+          },
+    },
+    r"^EO:ECMWF:DAT:CAMS_EUROPE_AIR_QUALITY_FORECASTS$": {
+        "notes": "Requires a complete query; fails with minimal query. Needs bbox, dates, and all fixed parameters.",
+        "force_fields": {
+            "startdate": "2025-10-09T00:00:00.000Z",
+            "enddate": "2025-10-09T23:59:59.999Z",
+            "model": "ensemble",
+            "level": "0",
+            "type":"forecast",
+            "time": "00:00",
+            "leadtime_hour": "0",
+        }
     },
 }
 
@@ -290,8 +350,24 @@ def build_query_from_metadata(metadata, startdate=None, enddate=None, items_per_
     return query
 
 
+def run_with_timeout(method, timeout, *args, **kwargs):
+    result = {}
+
+    def wrapper():
+        result["value"] = method(*args, **kwargs)
+
+    thread = threading.Thread(target=wrapper)
+    thread.start()
+    thread.join(timeout)
+
+    if thread.is_alive():
+        raise TimeoutError(f"Dataset check exceeded {timeout} seconds")
+
+    # ✅ Return the captured result
+    return result.get("value")
+
 # ---- main loop (same as before, but corrected apply_exceptions call) ----
-for dataset in c.datasets()[1100:1200]:
+for dataset in c.datasets()[1200:1300]:
     dataset_id = dataset['dataset_id']
     query = {}  # ensure query exists even if exception is raised early
     try:
@@ -309,7 +385,8 @@ for dataset in c.datasets()[1100:1200]:
         min_lon, max_lon, min_lat, max_lat = get_geographic_boundaries(metadata_dataset)
         start_date, end_date = get_start_and_end_dates(metadata_dataset)
 
-        matches = c.search(query)
+        matches = run_with_timeout(c.search, 30, query)
+#        matches = c.search(query)
         volume = get_volume_in_Gb(matches)
 
         datasets_availability.append(
