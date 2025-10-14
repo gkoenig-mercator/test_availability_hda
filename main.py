@@ -13,7 +13,7 @@ def main():
     c = get_client()
     datasets_availability = []
 
-    for dataset in c.datasets()[1200:1300]:
+    for dataset in c.datasets():
         dataset_id = dataset['dataset_id']
         query = {}
         try:
