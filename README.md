@@ -26,12 +26,14 @@ project_root/
 1. Cloning repository
    ```bash
    git clone https://github.com/yourusername/hda-dataset-checker.git
-   cd hda-dataset-checker```
+   cd hda-dataset-checker
+   ```
 
 3. Install dependencies
 Make sure you have Python 3.9+ installed, then install required libraries:
    ```bash
-   pip install pandas hda```
+   pip install pandas hda
+   ```
 The hda package is required to interact with the Harmonised Data Access API.
 
 4. Configure access
@@ -39,14 +41,16 @@ Ensure you have a valid .hdarc configuration file with your HDA credentials:
    ```bash
    username = your_username
    password = your_password
-   url = https://hda-api-url/```
+   url = https://hda-api-url/
+   ```
 
 Place it one directory above the project root (default expected location: ../.hdarc),
 or update the path in hda_utils/config.py if you prefer a custom location.
 
 4. Run the script
    ```python
-    python main.py```
+    python main.py
+    ```
 
 The script will:
 
