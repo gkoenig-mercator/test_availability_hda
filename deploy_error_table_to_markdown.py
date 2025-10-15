@@ -2,6 +2,7 @@ import pandas as pd
 import os
 import subprocess
 from dotenv import load_dotenv
+import sys
 
 def create_markdown_file_from_csv():
     
