@@ -4,5 +4,5 @@ theme:
 nav:
   - Home: index.md
   - Usage: usage.md
-  - Further: further_development.md
+  - Further: further_developments.md
   - List of Errors: generated_table.md
