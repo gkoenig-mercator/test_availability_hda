@@ -1,10 +1,12 @@
 # hda_utils/helpers.py
 import multiprocessing
+from hda_utils.config import get_client
 
-def run_with_timeout(method, timeout, *args, **kwargs):
+def search_with_timeout(query, timeout):
     def target(queue):
+        c = get_client()
         try:
-            result = method(*args, **kwargs)
+            result = c.search(query)
             queue.put(("ok", result))
         except Exception as e:
             queue.put(("error", e))
