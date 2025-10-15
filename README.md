@@ -2,6 +2,10 @@
 
 This project provides a modular and extendable Python utility to query and validate dataset availability from the Harmonised Data Access (HDA)
 
+## Documentation
+
+The documentation is available at the following address: https://gkoenig-mercator.github.io/test_availability_hda/
+
 ## Project Structure
 
 ```bash
