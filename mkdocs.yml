@@ -1,0 +1,9 @@
+site_name: HDA Automated Testing Script
+theme:
+  name: readthedocs
+nav:
+  - Home: index.md
+  - Usage: usage.md
+  - Database: database_schema.md
+  - Further: further_development.md
+  - Table of errors: generated_table.md
