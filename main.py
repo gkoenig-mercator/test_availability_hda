@@ -13,7 +13,7 @@ def main():
     c = get_client()
     datasets_availability = []
 
-    for dataset in c.datasets():
+    for dataset in c.datasets()[:10]:
         dataset_id = dataset['dataset_id']
         query = {}
         try:
@@ -46,6 +46,10 @@ def main():
     )
     df.to_csv('data/Datasets_availability.csv', index=False)
     print("✅ Saved results to data/Datasets_availability.csv")
+
+    df_with_error = df.copy()
+    df_with_error = df_with_error[df_with_error["Available"]==False]
+    df_with_error.to_csv('data/Datasets_with_errors.csv', index=False)
 
 if __name__ == "__main__":
     main()
