@@ -1,16 +1,30 @@
 # hda_utils/helpers.py
-import threading
+import multiprocessing
 
 def run_with_timeout(method, timeout, *args, **kwargs):
-    result = {}
-    def wrapper():
-        result["value"] = method(*args, **kwargs)
-    thread = threading.Thread(target=wrapper)
-    thread.start()
-    thread.join(timeout)
-    if thread.is_alive():
+    def target(queue):
+        try:
+            result = method(*args, **kwargs)
+            queue.put(("ok", result))
+        except Exception as e:
+            queue.put(("error", e))
+
+    queue = multiprocessing.Queue()
+    process = multiprocessing.Process(target=target, args=(queue,))
+    process.start()
+    process.join(timeout)
+
+    if process.is_alive():
+        process.terminate()
+        process.join()
         raise TimeoutError(f"Dataset check exceeded {timeout} seconds")
-    return result.get("value")
+
+    if not queue.empty():
+        status, value = queue.get()
+        if status == "error":
+            raise value
+        return value
+
 
 def get_volume_in_Gb(matches):
     try:
