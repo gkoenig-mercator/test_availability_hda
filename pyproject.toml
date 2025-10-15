@@ -1,0 +1,18 @@
+[project]
+name = "test_availability_hda"
+version = "0.1.1"
+description = "Script for testing availability of data via hda"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.10"
+authors = [
+  {name = "Guillaume Koenig", email = "gkoenig@mercator-ocean.fr"}
+]
+dependencies = [
+  "hda==2.34",
+  "pandas>=2.0,<3", 
+  "mkdocs==1.6.1",
+  ]
+
+[project.optional-dependencies]
+dev = ["mkdocs"]
