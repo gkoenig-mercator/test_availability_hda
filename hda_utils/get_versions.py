@@ -9,7 +9,7 @@ def get_linux_version():
         return platform.platform()
 
 
-def get_toolbox_version():
+def get_hda_version():
     try:
         return importlib.metadata.version("hda")
     except importlib.metadata.PackageNotFoundError:
@@ -20,7 +20,7 @@ def get_versions():
     return {
         "linux_version": get_linux_version(),
         "script_version": "0.0.1",
-        "toolbox_version": get_toolbox_version(),
+        "hda_version": get_hda_version(),
     }
 
 if __name__ == "__main__":
