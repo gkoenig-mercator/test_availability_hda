@@ -9,11 +9,11 @@ from database_management.database_creation import testing_metadata, datasets_tes
 load_dotenv()
 
 api_key = os.getenv("API_KEY")
-username = os.environ["DATABASE_USERNAME"]
-password = os.environ["DATABASE_PASSWORD"]
-database_url = os.environ["DATABASE_URL"]
-database_name = os.environ["DATABASE_NAME"]
-database_port = os.environ["DATABASE_PORT"]
+username = os.environ.get("DATABASE_USERNAME", "project-test-availability-edito")
+password = os.environ.get("DATABASE_PASSWORD","hi49nwyqwpv8psk4o7r3")
+database_url = os.environ.get("DATABASE_URL","postgresql-850370.project-test-availability-edito")
+database_name = os.environ.get("DATABASE_NAME","defaultdb")
+database_port = os.environ.get("DATABASE_PORT"," 5432")
 
 table_name = "Data_accessibility_tests"
 engine = create_engine(
@@ -44,7 +44,7 @@ def append_dataset_downloadable_status_in_db(data_dir, test_id):
     and datasets up to a few thousand rows
     """
     
-    file_path = os.path.join(data_dir, "downloaded_availability.csv")
+    file_path = os.path.join(data_dir, "Datasets_availability.csv")
     dataset_rows = []
 
     # Read CSV and prepare rows
