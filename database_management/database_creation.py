@@ -12,8 +12,8 @@ load_dotenv()
 logging.basicConfig()
 logging.getLogger("sqlalchemy.engine").setLevel(logging.DEBUG)
 
-username = os.environ["DATABASE_USERNAME"]
-password = os.environ["DATABASE_PASSWORD"]
+username = os.environ.get("DATABASE_USERNAME","project-test-availability-edito")
+password = os.environ.get("DATABASE_PASSWORD","hi49nwyqwpv8psk4o7r3")
 database_url = os.environ.get(
     "DATABASE_URL", "postgresql-850370.project-test-availability-edito"
 )
