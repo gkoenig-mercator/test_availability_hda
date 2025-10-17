@@ -5,6 +5,7 @@ import csv
 import uuid
 from dotenv import load_dotenv
 from database_management.database_creation import testing_metadata, datasets_tested
+import json
 
 load_dotenv()
 
@@ -73,7 +74,15 @@ def append_dataset_downloadable_status_in_db(data_dir, test_id):
 
 if __name__ == "__main__":
 
-    test_id = append_test_metadata_in_db(start_time, end_time,
-                                         linux_version, hda_version,
-                                         script_version, run_duration, number_of_datasets)
+    with open("data/test_info.json", "r") as f:
+        data = json.load(f)
+    
+    test_id = append_test_metadata_in_db(data['start_time'],
+                                         data['end_time'],
+                                         data['versions']['linux_version'],
+                                         data['versions']['hda_version'],
+                                         data['versions']['script_version'],
+                                         data['run_duration_seconds'],
+                                         data['number_of_datasets'])
+
     append_dataset_downloadable_status_in_db('data', test_id)
