@@ -6,11 +6,11 @@ def get_geographic_boundaries(metadata):
         min_lat, max_lat = coords[1][1], coords[0][1]
         return min_lon, max_lon, min_lat, max_lat
     except Exception:
-        return None, None, None, None
+        return -999, -999, -999, -999
 
 def get_start_and_end_dates(metadata):
     try:
         props = metadata['properties']
         return props['startdate']['default'], props['enddate']['default']
     except Exception:
-        return None, None
+        return "3000-06-06T00:00:00Z", "3000-06-06T00:00:00Z"
