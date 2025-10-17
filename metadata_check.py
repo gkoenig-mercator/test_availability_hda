@@ -9,7 +9,7 @@ c = Client(config=config, retry_max=500, sleep_max=2)
 
 datasets_availability = []
 
-for dataset in c.datasets()[::-1]:
+for dataset in c.datasets():
     dataset_id = dataset['dataset_id']
     try:
         # Just try fetching metadata
