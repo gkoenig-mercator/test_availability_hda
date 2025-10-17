@@ -6,6 +6,7 @@ from hda_utils.exceptions import apply_exceptions
 from hda_utils.metadata import get_geographic_boundaries, get_start_and_end_dates
 from hda_utils.query_builder import build_query_from_metadata
 from hda_utils.helpers import get_volume_in_Gb, search_with_timeout
+import uuid
 
 logging.basicConfig(level=logging.INFO)
 
@@ -24,11 +25,12 @@ def main():
             min_lon, max_lon, min_lat, max_lat = get_geographic_boundaries(metadata_dataset)
             start_date, end_date = get_start_and_end_dates(metadata_dataset)
 
-            matches = search_with_timeout(query, 30)
+            matches = search_with_timeout(query, 120)
             volume = get_volume_in_Gb(matches)
 
             datasets_availability.append([
-                dataset_id, True, None, min_lon, max_lon, min_lat, max_lat,
+                str(uuid.uuid4()), dataset_id, True, None, 
+                min_lon, max_lon, min_lat, max_lat,
                 start_date, end_date, volume, query
             ])
             print(f"{dataset_id}: {volume} GB")
@@ -36,7 +38,9 @@ def main():
         except Exception as e:
             logging.exception(f"Error processing dataset {dataset_id}")
             datasets_availability.append([
-                dataset_id, False, str(e), None, None, None, None, None, None, None, query
+                str(uuid.uuid4()), dataset_id,
+                False, str(e), None, None, None,
+                None, None, None, None, query
             ])
 
     df = pd.DataFrame(
