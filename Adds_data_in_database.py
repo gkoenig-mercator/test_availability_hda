@@ -30,7 +30,7 @@ def append_test_metadata_in_db(start_time, end_time, linux_version, hda_version,
             "run_duration_seconds": run_duration,
             "numbers_of_datasets": number_of_datasets,
             "linux_version": linux_version,
-            "hda_version": toolbox_version,
+            "hda_version": hda_version,
             "script_version": script_version,
         }
         result = conn.execute(insert(testing_metadata).values(test_run))
@@ -54,15 +54,15 @@ def append_dataset_downloadable_status_in_db(data_dir, test_id):
             dataset_rows.append({
                 "id": row["id"],          # unique ID for this dataset_test row
                 "test_id": test_id,               # link to the test_run
-                "Dataset_id": row["dataset_id"],
+                "Dataset_id": row["Dataset_id"],
                 "Error": row["Error"],
-                "Min_Lon":row["Min_Lon"],
-                "Max_Lon":row["Max_Lon"],
-                "Min_Lat":row["Min_Lat"],
-                "Max_Lat":row["Max_Lat"],
+                "Min_Lon":row["Min Lon"],
+                "Max_Lon":row["Max Lon"],
+                "Min_Lat":row["Min Lat"],
+                "Max_Lat":row["Max Lat"],
                 "Start":row["Start"],
                 "End":row["End"],
-                "Volume":row["Volume"],
+                "Volume":row["Volume (GB)"],
                 "Query":row["Query"]
              })
 
@@ -70,3 +70,10 @@ def append_dataset_downloadable_status_in_db(data_dir, test_id):
     if dataset_rows:
         with engine.begin() as conn:
             conn.execute(insert(datasets_tested), dataset_rows)
+
+if __name__ == "__main__":
+
+    test_id = append_test_metadata_in_db(start_time, end_time,
+                                         linux_version, hda_version,
+                                         script_version, run_duration, number_of_datasets)
+    append_dataset_downloadable_status_in_db('data', test_id)
