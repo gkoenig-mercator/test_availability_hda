@@ -44,7 +44,7 @@ def append_dataset_downloadable_status_in_db(data_dir, test_id):
     and datasets up to a few thousand rows
     """
     
-    file_path = os.path.join(data_dir, "downloaded_datasets.csv")
+    file_path = os.path.join(data_dir, "downloaded_availability.csv")
     dataset_rows = []
 
     # Read CSV and prepare rows
