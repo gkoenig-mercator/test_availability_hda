@@ -32,4 +32,4 @@ def get_volume_in_Gb(matches):
     try:
         return int(matches.volume / 1e9)
     except Exception:
-        return None
+        return -999

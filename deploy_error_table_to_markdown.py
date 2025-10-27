@@ -41,11 +41,14 @@ def deploy_on_gh_pages():
     repo_name = os.environ.get("GH_REPO")
     repo_user = os.environ.get("GH_USER")
 
+    print(repo_name)
+    print(repo_user)
+
     if not token:
         print("❌ Error: GH_TOKEN environment variable is not set.")
         sys.exit(1)
 
-    repo_url = f"https://{token}@github.com/{repo_user}/{repo_name}.git"
+    repo_url = f"https://{repo_user}:{token}@github.com/{repo_user}/{repo_name}.git"
 
     try:
         # Update remote URL to use token authentication
@@ -61,5 +64,6 @@ def deploy_on_gh_pages():
 
 if __name__ == "__main__":
 
+    load_dotenv()
     create_markdown_file_from_csv()
     deploy_on_gh_pages()
