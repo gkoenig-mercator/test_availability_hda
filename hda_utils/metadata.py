@@ -11,6 +11,9 @@ def get_geographic_boundaries(metadata):
 def get_start_and_end_dates(metadata):
     try:
         props = metadata['properties']
-        return props['startdate']['default'], props['enddate']['default']
+        if props['startdate']['default']=='' and props['enddate']['default']=='':
+            return "3000-06-06T00:00:00Z", "3000-06-06T00:00:00Z"
+        else:
+            return props['startdate']['default'], props['enddate']['default']
     except Exception:
         return "3000-06-06T00:00:00Z", "3000-06-06T00:00:00Z"
